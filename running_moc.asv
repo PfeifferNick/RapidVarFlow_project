@@ -14,7 +14,7 @@ if mode == "normalVersion"
 %         friction = "transientFriction"
 %     end
     
-   k= 2 ; % transient friciton
+   
    
     
 for j = 1:tsteps-1 
@@ -71,9 +71,9 @@ for j = 1:tsteps-1
 
     t=j*dt;
     phi = (Cd*Av)/Ap;
-    T_closure = (1-t/Tcl)^0.5; % is j correct?
+    T_ = (1-t/Tcl)^0.5; % is j correct?
     if (1-t/Tcl) >= 0 
-    V(n+1,j+1) = phi*T_closure*sqrt(2*g*H(n+1,j));
+    V(n+1,j+1) = phi*theta*sqrt(2*g*H(n+1,j));
     else 
     V(n+1,j+1) = 0;
     end

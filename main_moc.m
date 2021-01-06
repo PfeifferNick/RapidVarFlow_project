@@ -1,4 +1,7 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % main script method of caracteristics
+% project work
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 clear;clc;close all
 %% set global variables to be used in other functions
@@ -6,15 +9,16 @@ global Ap a dt dx Tcl g f mode n D V H
 
 %% Choose between normalVersion/surgeTank/airChamber
 %mode = "airChamber"; %% normalVersion/surgeTank/airChamber
-mode = "surgeTank";
-%mode = "normalVersion";
+%mode = "surgeTank";
+mode = "normalVersion";
 K_ut = 0.004; % 0.004 to 0.0054
 K_ux = 0.033; % 0.033 to 0.05
 theta = 0.5; 
 %% Choose friction 
 if mode == "normalVersion" 
-    friction = "normalFriction";
-    %friction = "transientFriction";
+    %friction = "normalFriction";
+    friction = "transientFriction";
+               
     comparisonFriction = "no";          %comparison of the transient with normal friction
     %comparisonFriction = "yes";
 K_ut = 0.004; % 0.004 to 0.0054
@@ -26,35 +30,55 @@ fprintf('Mode is set to: %s.\n',mode);
 end
 
 %% input data
+
+K=2.05*10^9; % water bulk modulus [N/m2]
+g=9.81; % gravity acceleration [m/s2]
+rho=1000; % water density [kg/m3]
+visc=1.004*10^(-6); % kinematic viscosity [m2/s]
+
 % Pipe data
-H0 =  150 ;   % reservoir water level [m]
-D  =    3.0 ;   % Pipe diameter [m]
+H0 =  120 ;   % reservoir water level [m]
+D  =    1.6 ;   % Pipe diameter [m]
 Ap = pi*D^2/4 ; % Pipe area
-L  = 1000.0 ;   % Pipe lenght [m]
 a  = 1000.0 ;   % wave velocity [m/s]
-n  =   80  ;   % control volumes
-f  =  0.05; % friction coefficient
+n  =   25  ;   % control volumes
+f  =  0.05 ; % friction coefficient
+L  = 1100.0 ;   % Pipe lenght [m]
+L_1 = 886.0 ;
+L_2 = 86.59 ;
+L_3 = 127.41 ;
 mu = 2*L/a  ;   % time for complete sequence of events
 
+% Pipe properties
+rough=0.00015; % pipe roughness [m] (steel)
+rough=0.0003; % pipe roughness [m] (reinforced concrete)
+rough=0.000115; % pipe roughness [m] (ductile iron)
+rough=0.00003; % pipe roughness [m] (GRP)
+e=0.012; % pipe thickness [m]
+E=210*10^9; % Young?s modulus of the pipe [N/m2]
+
+ 
 % Position of the surge tank
-if mode == "surgeTank"
     %%for surge tank in the middle 
     nsT = round(n/2)+1; % if n=5, nsT=4
     AsT = 4 ;% AsT Area of surge tank 20 m^2
     maxit = 1000; %maximum iteration steps
     tol = 1e-5; %tolerance
-end
 
 % Valve data
-Tcl= 1 ;        %time of closure of the valve
-Av = 0.5;       % Valve opening area [m?]
+Tcl= 3 ;        %time of closure of the valve in seconds [s]
 zeta = 1;
-g = 9.81 ;      % graviational constant
+Dv = 0.4;       %Valve diameter [m]
+Av = pi*Dv^2/4 ; % Valve area   [m^2]
+Cd = 0.8;
+
+
+
 
 % simulation data
 dx = L/n ;      % lenght of control volumes
 dt = dx/a;      %length/wave velocity, CFl=dt*a/dx
-tend = 300 ;  % simulation duration
+tend = 200 ;  % simulation duration
 tsteps = round(tend/dt) ; % simulated time steps
 
 V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity comes from Bernouli's energy conservation equation.
@@ -65,7 +89,7 @@ V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity
 
 fprintf('initial set up finished\n')
 
-[H,V] = running_moc(tsteps,theta,K_ut,K_ux,H0,V_initial,nsT,maxit,AsT,tol);
+[H,V] = running_moc(friction,tsteps,theta,K_ut,K_ux,H0,V_initial,nsT,maxit,AsT,tol,Cd,Av);
 
 fprintf('simulation finished\n')
 
