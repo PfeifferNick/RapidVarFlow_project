@@ -16,11 +16,9 @@ K_ux = 0.033; % 0.033 to 0.05
 theta = 0.5; 
 %% Choose friction 
 if mode == "normalVersion" 
-    %friction = "normalFriction";
-    friction = "transientFriction";
-               
-    comparisonFriction = "no";          %comparison of the transient with normal friction
-    %comparisonFriction = "yes";
+    friction = "normalFriction";
+    %friction = "transientFriction";
+
 K_ut = 0.004; % 0.004 to 0.0054
 K_ux = 0.033; % 0.033 to 0.05
 theta = 0.5; 
@@ -41,7 +39,7 @@ H0 =  120 ;   % reservoir water level [m]
 D  =    1.6 ;   % Pipe diameter [m]
 Ap = pi*D^2/4 ; % Pipe area
 a  = 1000.0 ;   % wave velocity [m/s]
-n  =   25  ;   % control volumes
+n  =   50  ;   % control volumes
 f  =  0.05 ; % friction coefficient
 L  = 1100.0 ;   % Pipe lenght [m]
 L_1 = 886.0 ;
@@ -66,7 +64,7 @@ E=210*10^9; % Young?s modulus of the pipe [N/m2]
     tol = 1e-5; %tolerance
 
 % Valve data
-Tcl= 3 ;        %time of closure of the valve in seconds [s]
+Tcl= 3;        %time of closure of the valve in seconds [s]
 zeta = 1;
 Dv = 0.4;       %Valve diameter [m]
 Av = pi*Dv^2/4 ; % Valve area   [m^2]
@@ -118,35 +116,7 @@ for i=1:n+1
     V_max_env(i) = max(V(i,:));
     V_min_env(i) = min(V(i,:));
 end
-    if comparisonFriction == "yes"
-        % plot comparison of friction
-    figure(22);     
-  
-    subplot(1,2,1) 
-    
-    plot(t,H_normal(1,:),'r'), xlabel('t [s]'), ylabel('H [m]')
-    hold on
-    plot(t,H_normal(n+1,:),'g')
-    hold on
-    plot(t,H_transient(1,:),'b--')
-    hold on
-    plot(t,H_transient(n+1,:),'m--')
-    hold off
-    legend('inlet, normal', 'valve, normal','inlet, transient', 'valve, transient', 'Location', 'best')
-  
-    subplot(1,2,2)
-    plot(t,V_normal(1,:),'r'), xlabel('t [s]'), ylabel('V [m/s]')
-    hold on
-    plot(t,V_normal(n+1,:),'g')
-    hold on
-    plot(t,V_transient(1,:),'b--')
-    hold on
-    plot(t,V_transient(n+1,:),'m--')
-    hold off
-   legend('inlet, normal', 'valve, normal','inlet, transient', 'valve, transient', 'Location', 'best')
-    sgtitle(['dx = ',num2str(dx),'  ','n = ',num2str(n),'  ','dt =',num2str(dt),'  ','tend = ',num2str(tend),' K_u_t= ',num2str(K_ut),' K_u_x= ',num2str(K_ux)])
-    saveas(gcf,['dx = ',num2str(dx),'  ','n = ',num2str(n),'  ','dt =',num2str(dt),'  ','tend = ',num2str(tend),' K_ut= ',num2str(K_ut),' K_ux= ',num2str(K_ux),'.bmp'])
-    else
+
 
 % plot H at valve over time
   figure();     % More information on ploting in: https://de.mathworks.com/help/matlab/ref/plot.html
@@ -195,7 +165,7 @@ subplot(2,2,2)
             plot(xaxis,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             legend('Location','southoutside','orientation','horizontal')
     end   
-    end  
+      
 elseif mode == "surgeTank"
 
 % set x-axis data for plots over the lenght of the pipe
@@ -275,9 +245,9 @@ else
     return   
 end
 
- if comparisonFriction == "yes"
+
      
- else
+
  % plot H at different time steps over the lenght of the pipe
     % reset hold for new plots
     for i =1:(1) % changing the number in parenthesis allows to animate the simulation from the first to the desired timestep
@@ -310,6 +280,5 @@ end
             plot(xaxis,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             legend('Location','southoutside','orientation','horizontal')
     end    
- end
-
+ 
 

@@ -7,15 +7,6 @@ global Ap a dt dx Tcl g f mode n D V H
 % loop over time steps
 %% normal version wihtout airchamber or surge tank
 if mode == "normalVersion"
-%     for k = 1:2
-%     if k == 1
-%         friction = "normalFriction"
-%     else
-%         friction = "transientFriction"
-%     end
-    
-   k= 2 ; % transient friciton
-   
     
 for j = 1:tsteps-1 
     
@@ -80,14 +71,6 @@ for j = 1:tsteps-1
    
     H(n+1,j+1) = H(n,j)+a/g*(V(n,j)-V(n+1,j+1))-(a/g)*((f*dt)/(2*D))*V(n,j)*abs(V(n,j));
 end
-if k == 1
-        H_normal = H;
-        V_normal = V;
-    else
-        H_transient = H;
-        V_transient = V;
-    end
-%     end
     %% surge tank
 elseif mode == "surgeTank"
     kcount=1;
