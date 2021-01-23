@@ -9,7 +9,7 @@ global Ap a dt Tcl g f mode L D dx tend n
 %mode = "airChamber"; %% normalVersion/surgeTank/airChamber
 mode = "surgeTank";
 %mode = "normalVersion";
-%mode = "airChamber";
+mode = "airChamber";
 
 %% Choose between turbine and pumping mode 
 % system = pump/turbine
@@ -79,7 +79,7 @@ end
 
 % Valve data
 Tcl= 1e7 ;        %time of closure of the valve
-Tcl= 3 ;        %time of closure of the valve
+%Tcl= 3 ;        %time of closure of the valve
 Dv  = 0.4 ;   % Valve diameter [m]
 Av = pi*Dv^2/4 ;       % Valve opening area [m?]
 zeta = 1;
@@ -98,7 +98,7 @@ V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity
 % calculation of pipe friction factor
 Re=V_initial*D/visc; % reynolds number 
 f=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
-%f =0
+f =0
 % phi according to the pipe supporting condition (see table 1 in paper:https://scielo.conicyt.cl/pdf/oyp/n20/art07.pdf
 % Pipe Case 2 Pipe anchored against any axial movement
 % u is the Poissons ratio see Table 3 from paper line 43 (Larock et al., 2000)
@@ -370,7 +370,7 @@ for j = 1:tsteps-1
     else
         V(n+2,j+1) = 0;
     end 
-     H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
+     H(n+2,j+1) = H(n+1,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
  end
   
 elseif mode == "airChamber"
@@ -443,7 +443,7 @@ for j = 1:tsteps-1
     else
         V(n+2,j+1) = 0;
     end 
-     H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
+     H(n+1,j+1) = H(n+1,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
   
   
    
@@ -556,22 +556,17 @@ elseif mode == "surgeTank"
 
 % set x-axis data for plots over the lenght of the pipe
 xaxisold = 0:dx:L;
-xaxisV = zeros(1,n+2) ;
-xaxisH = zeros(1,n+1) ;
+xaxis = zeros(1,n+2) ;
 for i=1:nsT
-    xaxisV(i) = xaxisold(i);
-    xaxisH(i) = xaxisold(i);
+    xaxis(i) = xaxisold(i);
 end
 for i=nsT+1:n+2
-    xaxisV(i) = xaxisold(i-1);
-end
-for i=nsT+1:n+1
-    xaxisH(i) = xaxisold(i-1);
+    xaxis(i) = xaxisold(i-1);
 end
 % set x-axis data for plots over time
 t = 0 : dt : (tsteps-1)*dt ;
 
-for i=1:n+1
+for i=1:n+2
     H_max_env(i) = max(H(i,:));
     H_min_env(i) = min(H(i,:));
 end
@@ -586,7 +581,7 @@ end
   subplot(2,2,1) 
   plot(t,H(1,:)), xlabel('t [s]'), ylabel('H [m]')
   hold on
-  plot(t,H(n+1,:)), 
+  plot(t,H(n+2,:)), 
   hold on
   plot(t,H(nsT-1,:)), 
   hold on
@@ -611,12 +606,12 @@ subplot(2,2,2)
     
     % plot H at different time steps over the lenght of the pipe
     % reset hold for new plots
-  for i =1:(1) % changing the number in parenthesis allows to animate the simulation from the first to the desired timestep
+    for i =1:(1) % changing the number in parenthesis allows to animate the simulation from the first to the desired timestep
         subplot(2,2,3)       
-            plot(xaxisH,H(:,i )), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H(:,i )), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             axis([0,inf,(min(H_min_env)*1.1),(max(H_max_env)*1.1)]);
         subplot(2,2,4)
-            plot(xaxisV,V(:,i )), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V(:,i )), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
         pause(.0002) 
         subplot(2,2,3)
@@ -624,22 +619,22 @@ subplot(2,2,2)
         subplot(2,2,4)
         hold off
         subplot(2,2,3)
-            plot(xaxisH,H(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             axis([0,inf,(min(H_min_env)*1.1),(max(H_max_env)*1.1)])
             hold on
         subplot(2,2,4)
-            plot(xaxisV,V(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
             hold on
         subplot(2,2,3)    
-            plot(xaxisH,H_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
-            plot(xaxisH,H_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             legend('Location','southoutside','orientation','horizontal')
         subplot(2,2,4)    
-            plot(xaxisV,V_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
-            plot(xaxisV,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             legend('Location','southoutside','orientation','horizontal')
-    end 
+    end   
   
 elseif mode == "airChamber"
     % set x-axis data for plots over the lenght of the pipe
@@ -701,10 +696,10 @@ subplot(2,2,2)
     % reset hold for new plots
     for i =1:(1) % changing the number in parenthesis allows to animate the simulation from the first to the desired timestep
         subplot(2,2,3)       
-            plot(xaxisH,H(:,i )), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H(:,i )), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             axis([0,inf,(min(H_min_env)*1.1),(max(H_max_env)*1.1)]);
         subplot(2,2,4)
-            plot(xaxisV,V(:,i )), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V(:,i )), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
         pause(.0002) 
         subplot(2,2,3)
@@ -712,20 +707,20 @@ subplot(2,2,2)
         subplot(2,2,4)
         hold off
         subplot(2,2,3)
-            plot(xaxisH,H(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             axis([0,inf,(min(H_min_env)*1.1),(max(H_max_env)*1.1)])
             hold on
         subplot(2,2,4)
-            plot(xaxisV,V(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
             hold on
         subplot(2,2,3)    
-            plot(xaxisH,H_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
-            plot(xaxisH,H_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             legend('Location','southoutside','orientation','horizontal')
         subplot(2,2,4)    
-            plot(xaxisV,V_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
-            plot(xaxisV,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             legend('Location','southoutside','orientation','horizontal')
     end
 else 
@@ -738,10 +733,10 @@ end
     for i =1:(1) % changing the number in parenthesis allows to animate the simulation from the first to the desired timestep
         
         subplot(2,2,3)       
-            plot(xaxisH,H(:,i )), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H(:,i )), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             axis([0,inf,(min(H_min_env)*1.1),(max(H_max_env)*1.1)]);
         subplot(2,2,4)
-            plot(xaxisV,V(:,i )), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V(:,i )), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
         pause(.0002) 
         subplot(2,2,3)
@@ -749,20 +744,20 @@ end
         subplot(2,2,4)
         hold off
         subplot(2,2,3)
-            plot(xaxisH,H(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             axis([0,inf,(min(H_min_env)*1.1),(max(H_max_env)*1.1)])
             hold on
         subplot(2,2,4)
-            plot(xaxisV,V(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
             hold on
         subplot(2,2,3)    
-            plot(xaxisH,H_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
-            plot(xaxisH,H_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
+            plot(xaxis,H_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('H [m]')
             legend('Location','southoutside','orientation','horizontal')
         subplot(2,2,4)    
-            plot(xaxisV,V_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
-            plot(xaxisV,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V_max_env,'DisplayName','max envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
+            plot(xaxis,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('V [m/s]')
             legend('Location','southoutside','orientation','horizontal')
     end
 else 
