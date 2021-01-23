@@ -20,7 +20,7 @@ system = "turbine"
 %% Choose friction 
 % if mode == "normalVersion" 
     friction = "normalFriction";
-    %friction = "transientFriction";
+    friction = "transientFriction";
 
 K_ut = 0.004; % 0.004 to 0.0054
 K_ux = 0.033; % 0.033 to 0.05
@@ -39,7 +39,7 @@ L_1 = 886.0 ;
 L_2 = 86.59 ;
 L_3 = 127.41 ;
 a  = 1000.0 ;   % wave velocity [m/s]
-n  =   5  ;   % control volumes
+n  =   20  ;   % control volumes
 f  =  0.05; % friction coefficient
 mu = 2*L/a  ;   % time for complete sequence of events
 K=2.05*10^9; % water bulk modulus [N/m2]
@@ -59,8 +59,8 @@ E=210*10^9; % Young?s modulus of the pipe [N/m2]
 % Position of the surge tank
 if mode == "surgeTank"
     %%for surge tank in the middle 
-    nsT = round(n/2)+1; % if n=5, nsT=4
-    AsT = 0.5 ;% AsT Area of surge tank 20 m^2
+    nsT =5%round(n/2)+1; % if n=5, nsT=4
+    AsT = 20 ;% AsT Area of surge tank 20 m^2
     maxit = 1000; %maximum iteration steps
     tol = 1e-5; %tolerance
 end
@@ -89,7 +89,7 @@ Cd = 0.8 ;
 % simulation data
 dx = L/n ;      % lenght of control volumes
 dt = dx/a;      %length/wave velocity, CFl=dt*a/dx
-tend = 300 ;  % simulation duration
+tend = 3000 ;  % simulation duration
 tsteps = round(tend/dt) ; % simulated time steps
 
 
@@ -97,7 +97,7 @@ V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity
 
 % calculation of pipe friction factor
 Re=V_initial*D/visc; % reynolds number 
-f=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+%f=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
 %f =0
 % phi according to the pipe supporting condition (see table 1 in paper:https://scielo.conicyt.cl/pdf/oyp/n20/art07.pdf
 % Pipe Case 2 Pipe anchored against any axial movement
@@ -371,7 +371,8 @@ for j = 1:tsteps-1
         V(n+2,j+1) = 0;
     end 
      H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
- end
+ 
+end
   
 elseif mode == "airChamber"
   count = 1;  
@@ -385,7 +386,6 @@ for j = 1:tsteps-1
   if friction == "normalFriction"
     % calculation of pressure wave % loop over lenght of pipe
     for i = 2:nsT
-        i
         if i == nsT
         H(nsT,j+1) = H(nsT,j);%H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
         
@@ -410,7 +410,7 @@ for j = 1:tsteps-1
             end   
               
         else
-        i    
+           
         H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
         V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
         
@@ -584,9 +584,9 @@ end
   figure();     % More information on ploting in: https://de.mathworks.com/help/matlab/ref/plot.html
   % suptitle('Valve closure applying MOC') The command suptitle is not supporte on the basic package
   subplot(2,2,1) 
-  plot(t,H(1,:)), xlabel('t [s]'), ylabel('H [m]')
+  plot(t,H(1,:),'b'), xlabel('t [s]'), ylabel('H [m]')
   hold on
-  plot(t,H(n+1,:)), 
+  plot(t,H(n+1,:),'r'), 
   hold on
   plot(t,H(nsT-1,:)), 
   hold on
@@ -598,9 +598,9 @@ end
   
 subplot(2,2,2)
     hold off
-    plot(t,V(1,:)), xlabel('t [s]'), ylabel('V [m/s]')
+    plot(t,V(1,:),'b'), xlabel('t [s]'), ylabel('V [m/s]')
     hold all
-    plot(t,V(n+2,:)), 
+    plot(t,V(n+2,:),'r'), 
     hold on
     plot(t,V(nsT-1,:)), 
     hold on
@@ -692,7 +692,7 @@ subplot(2,2,2)
     hold on
     plot(t,V(nsT-1,:)), 
     hold on
-    plot(t,V(nsT+1,:)), 
+    plot(t,V(nsT+2,:)), 
     hold on
     plot(t,V(nsT,:)), 
     legend('at the inlet', 'at the valve','before the surge tank','after the surge tank','at the surge tank', 'Location', 'best')
