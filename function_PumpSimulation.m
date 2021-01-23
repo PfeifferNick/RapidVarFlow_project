@@ -1,4 +1,4 @@
-function[H,V] = fucntion_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta)
+function[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial)
 
 global Ap a dt Tcl g f mode L D dx tend n
 
@@ -7,10 +7,10 @@ global Ap a dt Tcl g f mode L D dx tend n
 % Pumping set up
 
 Qo=.50; % required pumping discharge [m3/s]
-USWL=H0; % upstream water level [m]
-DSWL=20; % downstream water level [m]
-PCL_US=20; % Pipe center line downstream [m]
-PCL_DS=100; % Pipe center line upstream [m]
+USWL=20; % upstream water level [m]
+DSWL=H0; % downstream water level [m]
+PCL_US=100; % Pipe center line downstream [m]
+PCL_DS=20; % Pipe center line upstream [m]
 
 pipe_slope=(PCL_DS-PCL_US)/L; % used to plot the pipe (visual purposes)
 

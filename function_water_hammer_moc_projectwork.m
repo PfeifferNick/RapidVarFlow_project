@@ -19,7 +19,7 @@ system = "turbine"
 %% Choose friction 
 if mode == "normalVersion" 
     friction = "normalFriction";
-    friction = "transientFriction";
+    %friction = "transientFriction";
 
 K_ut = 0.004; % 0.004 to 0.0054
 K_ux = 0.033; % 0.033 to 0.05
@@ -38,7 +38,7 @@ L_1 = 886.0 ;
 L_2 = 86.59 ;
 L_3 = 127.41 ;
 a  = 1000.0 ;   % wave velocity [m/s]
-n  =   5  ;   % control volumes
+n  =   20  ;   % control volumes
 f  =  0.05; % friction coefficient
 mu = 2*L/a  ;   % time for complete sequence of events
 K=2.05*10^9; % water bulk modulus [N/m2]
@@ -59,13 +59,13 @@ E=210*10^9; % Young?s modulus of the pipe [N/m2]
 if mode == "surgeTank"
     %%for surge tank in the middle 
     nsT = round(n/2)+1; % if n=5, nsT=4
-    AsT = 7 ;% AsT Area of surge tank 20 m^2
+    AsT = 0.5 ;% AsT Area of surge tank 20 m^2
     maxit = 1000; %maximum iteration steps
     tol = 1e-5; %tolerance
 end
 
 % Valve data
-Tcl= 3 ;        %time of closure of the valve
+Tcl= 1e7 ;        %time of closure of the valve
 Dv  = 0.4 ;   % Valve diameter [m]
 Av = pi*Dv^2/4 ;       % Valve opening area [m?]
 zeta = 1;
@@ -75,7 +75,7 @@ Cd = 0.8 ;
 % simulation data
 dx = L/n ;      % lenght of control volumes
 dt = dx/a;      %length/wave velocity, CFl=dt*a/dx
-tend = 300 ;  % simulation duration
+tend = 30 ;  % simulation duration
 tsteps = round(tend/dt) ; % simulated time steps
 
 
@@ -84,7 +84,7 @@ V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity
 % calculation of pipe friction factor
 Re=V_initial*D/visc; % reynolds number 
 f=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
-
+f = 0;
 % phi according to the pipe supporting condition (see table 1 in paper:https://scielo.conicyt.cl/pdf/oyp/n20/art07.pdf
 % Pipe Case 2 Pipe anchored against any axial movement
 % u is the Poissons ratio see Table 3 from paper line 43 (Larock et al., 2000)
@@ -97,7 +97,7 @@ fprintf('wave speed alpha = %g\n',alpha);
 
 %% either pump or turbine system
 if system == "pump"
-[H,V] = fucntion_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta)
+[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial)
 
 elseif system == "turbine"
     
@@ -210,34 +210,38 @@ for j = 1:tsteps-1
     % This function only allows two types of closure: 10 for sinusoidal and 20 for linear. 
     % More on writing matlab functions in: https://de.mathworks.com/help/matlab/ref/function.html
     % More on calling functions in matlab: https://de.mathworks.com/help/matlab/learn_matlab/calling-functions.html
-   help=(j-1)*dt/Tcl*pi();
-    if help <= pi()
-        V(n+1,j+1) = V_initial*0.5*(cos(help)+1);
-    else
-        V(n+1,j+1) = 0;
-    end 
+%    help=(j-1)*dt/Tcl*pi();
+%     if help <= pi()
+%         V(n+1,j+1) = V_initial*0.5*(cos(help)+1);
+%     else
+%         V(n+1,j+1) = 0;
+%     end 
     
     
-%      t=j*dt;
-%     phi = (Cd*Av)/Ap;
-%     T_closure = (1-t/Tcl)^0.5; % is j correct?
-%     if (1-t/Tcl) >= 0 
-%     V(n+1,j+1) = phi*T_closure*sqrt(2*g*H(n+1,j));
-%     else 
-%     V(n+1,j+1) = 0;
-%     end
+    t=j*dt;
+    phi = (Cd*Av)/Ap; 
+    T_closure = (1-t/Tcl)^0.5; % is j correct?
+    %1-t/Tcl
+    if (1-t/Tcl) >= 0 
+    V(n+1,j+1) = phi*T_closure*sqrt(2*g*H(n,j+1)); %H0 ?H(n,j+1) this is
+    
+    else 
+    V(n+1,j+1) = 0;
+    end
    
     H(n+1,j+1) = H(n,j)+a/g*(V(n,j)-V(n+1,j+1))-(a/g)*((f*dt)/(2*D))*V(n,j)*abs(V(n,j));
 end
 
  
 elseif mode == "surgeTank"
+    count = 1;
 for j = 1:tsteps-1 
     
     % left boundary condition
     H(1,j+1) = H0; 
     V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f*dt/(2*D)*V(2,j)*abs(V(2,j));
-   
+    
+    if friction == "normalFriction"
     % calculation of pressure wave % loop over lenght of pipe
     for i = 2:nsT
         
@@ -277,7 +281,67 @@ for j = 1:tsteps-1
         V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));
         
     end
+    elseif friction == "transientFriction"      
+        
+        % calculation of pressure wave % loop over lenght of pipe
+    for i = 2:nsT
+        
+        if i == nsT
+        H(nsT,j+1) = H(nsT,j);%H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
+        
+        Hcheck = zeros (2,maxit);
+        
+            while true
+        %Hcheck(1,count) = Hcheck(2,count-1);
+        Hcheck(1,count) = H(nsT,j+1);
+        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
+        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
+        H(nsT,j+1) = H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
                 
+        Hcheck(2,count) = H(nsT,j+1);
+        
+        diff = abs(Hcheck(1,count)-Hcheck(2,count));
+        
+          if (diff<=tol) || (count== maxit) 
+            break;
+          else
+        count=count+1;
+          end
+            end   
+              
+        else
+            
+                if j == 1
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a/dx))*...
+                        (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
+            
+                else
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+        
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a/dx))*...
+                        (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
+                end  
+        end
+    end
+    for i = nsT+1:n
+        %Note V is changed because it has n+2 values and H only n+1
+        H(i,j+1) = (H (i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)));
+        V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));
+        
+    end
+        
+    else
+       disp("choose friction");
+       return
+    end
         % right boundary condition
     
     % the valve closing scheme has been already implemented in the function:
@@ -492,14 +556,27 @@ end
   plot(t,H(1,:)), xlabel('t [s]'), ylabel('H [m]')
   hold on
   plot(t,H(n+2,:)), xlabel('t [s]'), ylabel('H [m]')
-  legend('at the inlet', 'at the valve', 'Location', 'best')
+  hold on
+  plot(t,H(nsT-1,:)), xlabel('t [s]'), ylabel('H [m]')
+  hold on
+  plot(t,H(nsT+1,:)), xlabel('t [s]'), ylabel('H [m]')
+  hold on
+  plot(t,H(nsT,:)), xlabel('t [s]'), ylabel('H [m]')
+  
+  legend('at the inlet', 'at the valve','before the surge tank','after the surge tank','at the surge tank', 'Location', 'best')
   
 subplot(2,2,2)
     hold off
     plot(t,V(1,:)), xlabel('t [s]'), ylabel('V [m/s]')
     hold all
     plot(t,V(n+2,:)), xlabel('t [s]'), ylabel('V [m/s]')
-    legend('at the inlet', 'at the valve', 'Location', 'best')
+    hold on
+    plot(t,V(nsT-1,:)), xlabel('t [s]'), ylabel('H [m]')
+    hold on
+    plot(t,V(nsT+1,:)), xlabel('t [s]'), ylabel('H [m]')
+    hold on
+    plot(t,V(nsT,:)), xlabel('t [s]'), ylabel('H [m]')
+    legend('at the inlet', 'at the valve','before the surge tank','after the surge tank','at the surge tank', 'Location', 'best')
     
     % plot H at different time steps over the lenght of the pipe
     % reset hold for new plots
