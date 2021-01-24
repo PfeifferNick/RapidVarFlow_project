@@ -1,4 +1,4 @@
-function[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial)
+function[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial,tsteps)
 
 global Ap a dt Tcl g f mode L D dx tend n
 
@@ -165,11 +165,13 @@ end
 t=0:dt:dt*(tmstps-1);
 x=0:dx:L;
 
+pipex=[0,127.41,214,1100];
+pipey=[20,20,120,120];
 % define pipe profile
 
 figure(2)
-for i=1:100
-    plot(x,pipe)
+for i=1:20:tsteps
+    plot(pipex,pipey)
     hold all
     plot(x,H_max)
     plot(x,H_min)
@@ -177,10 +179,10 @@ for i=1:100
     label_1=['Head at ',num2str((i-1)*dt), ' s'];
     legend('pipe profile','max head', 'min head',label_1, 'location', 'southeast')
     hold off
-    ylim([60 400])
+    %ylim([60 400])
     xlabel('pipe length [m]')
     ylabel('elevation/head [m]')
-    pause(0.01)
+    pause(0.1)
 end
 
 figure(3)
