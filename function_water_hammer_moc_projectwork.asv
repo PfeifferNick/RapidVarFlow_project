@@ -28,6 +28,10 @@ fprintf('Mode is set to: %s, The friction is set to: %s.\n',mode,friction);
 % else
 % fprintf('Mode is set to: %s.\n',mode);   
 % end
+
+%% control volumes
+%   choose number larger than 5. 
+n  =  40 ;  %  > 5
 %% input data
 % Pipe data
 H0 =  120 ;   % reservoir water level [m]
@@ -39,7 +43,6 @@ L_2 = 86.59 ;
 L_3 = 127.41 ;
 
 a  = 1000.0 ;   % wave velocity [m/s]
-n  =   50  ;   % control volumes
 f  =  0.2; % friction coefficient
 mu = 2*L/a  ;   % time for complete sequence of events
 K=2.05*10^9; % water bulk modulus [N/m2]
@@ -47,31 +50,23 @@ rho=1000; % water density [kg/m3]
 visc=1.004*10^(-6); % kinematic viscosity [m2/s]
 
 
-% Pipe properties
-rough=0.00015; % pipe roughness [m] (steel)
-rough=0.0003; % pipe roughness [m] (reinforced concrete)
-rough=0.000115; % pipe roughness [m] (ductile iron)
-rough=0.00003; % pipe roughness [m] (GRP)
-e=0.012; % pipe thickness [m]
-E=210*10^9; % Young?s modulus of the pipe [N/m2]
-%u??
-
-% Position of the surge tank
 if mode == "surgeTank"
     %%for surge tank in the middle 
-    nsT = 40%round(n/2)+1; % if n=5, nsT=4
-    AsT = 30 ;% AsT Area of surge tank 20 m^2
+    % Position of the surge tank
+    nsT = 15%round(n/2)+1; % if n=5, nsT=4
+    AsT = 20 ;% AsT Area of surge tank 20 m^2
     maxit = 1000; %maximum iteration steps
     tol = 1e-5; %tolerance
 end
 
-% Position of the air chamber
+
 if mode == "airChamber"
     %%for airChamber in the middle 
-    nsT = round(n/2)+1; % if n=5, nsT=4 %needs to be close to reservoir 
+    % Position of the air chamber
+    nsT = 6%round(n/2)+1; % if n=5, nsT=4 %needs to be close to reservoir 
     Vol_air =2300; % volumen of air chamber [m^3]
-    A_air = 10; % Area of air chamber [m^2]
-    m_pol = 1.44; %polytrophic constant , assumption: air
+    A_air = 4; % Area of air chamber [m^2]
+    m_pol = 1.2; %polytrophic constant , assumption: air
     H_atm = 10;%10 mWS 1bar
     maxit = 1000; %maximum iteration steps
     tol = 1e-5; %tolerance
@@ -79,7 +74,7 @@ end
 
 % Valve data
 Tcl= 1e9 ;        %time of closure of the valve
-Tcl= 3 ;        %time of closure of the valve
+Tcl= 18 ;        %time of closure of the valve
 Dv  = 0.4 ;   % Valve diameter [m]
 Av = pi*Dv^2/4 ;       % Valve opening area [m?]
 zeta = 1;
@@ -89,16 +84,61 @@ Cd = 0.8 ;
 % simulation data
 dx = L/n ;      % lenght of control volumes
 dt = dx/a;      %length/wave velocity, CFl=dt*a/dx
-tend = 1000 ;  % simulation duration
+tend = 100 ;  % simulation duration
 tsteps = round(tend/dt) ; % simulated time steps
-
-
 
 V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity comes from Bernouli's energy conservation equation.
 
+%% Separation of the pipe into control volumes
+n1 = round(L_1/dx);
+n2 = round(L_2/dx);
+n3 = n-n1-n2;
+sum_n = n1+n2+n3;
+
+if sum_n== n 
+    disp('separation of control volumes worked')
+else
+    return
+end
+
+%% Pipe properties
+
+e=0.012; % pipe thickness [m]
+E=210*10^9; % Youngs modulus of the pipe [N/m2]
+%u??
+
 % calculation of pipe friction factor
 Re=V_initial*D/visc; % reynolds number 
-f=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+
+% rough=0.00015; % pipe roughness [m] (steel)
+rough=0.0003; % pipe roughness [m] (reinforced concrete)
+% rough=0.000115; % pipe roughness [m] (ductile iron)
+% rough=0.00003; % pipe roughness [m] (GRP)
+
+% Pipe 1 
+rough1 = 0.00015; % pipe roughness [m] (steel)
+f1=0.25/(log(rough1/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+% Pipe 2 
+rough2 = 0.0003; % pipe roughness [m] (reinforced concrete)
+f2=0.25/(log(rough2/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+% Pipe 3 
+rough3 = 0.0003; % pipe roughness [m] (reinforced concrete)
+f3=0.25/(log(rough3/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+
+f = zeros(n+1,1);
+
+
+for i = 1:n+1
+    if i <= n1 
+    f(i,1) = f1;
+    elseif i <= n1+n2 
+    f(i,1) = f2;
+    else  
+    f(i,1) = f3;
+    end
+end
+
+%f=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
 %f =0
 % phi according to the pipe supporting condition (see table 1 in paper:https://scielo.conicyt.cl/pdf/oyp/n20/art07.pdf
 % Pipe Case 2 Pipe anchored against any axial movement
@@ -108,12 +148,14 @@ u = 0.30; % Steel accordign to roughness coefficient
 phi = (1/(1+e/D))*(1-u^2+2*(e/D)*(1+u)*(1+e/D));
 % wave speed calculation
 alpha = sqrt((K/rho)/(1+phi*(D*K)/(E*e)));
-fprintf('wave speed alpha = %g\n',alpha);
+fprintf('wave speed alpha = %g, choosen wave spped = %g\n',alpha,a);
 
-%% either pump or turbine system
+%% Numerical Caluclations - MoC
+
+% either pump or turbine system
 if system == "pump"
-[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial)
-
+[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial,tsteps,Ap);
+                                
 elseif system == "turbine"
     
 %initialization 
@@ -139,7 +181,7 @@ for i = 1:n+1
     if i==1
         H(i,1) = H0;
     else
-   H(i,1) =  H0-(i-1)*dx*f/D*V_initial^2/(2*g);    %H(i,1) =  % remember that the initial conditions come from steady
+   H(i,1) =  H0-(i-1)*dx*f(i)/D*V_initial^2/(2*g);    %H(i,1) =  % remember that the initial conditions come from steady
            %state and from fluid mechanics you know how to
            %calculate the piezometric head 
     end
@@ -151,7 +193,7 @@ elseif mode == "surgeTank"
     if i==1
         H(i,1) = H0;
     else
-   H(i,1) =  H0-(i-1)*dx*f/D*V_initial^2/(2*g);    %H(i,1) =  % remember that the initial conditions come from steady
+   H(i,1) =  H0-(i-1)*dx*f(i)/D*V_initial^2/(2*g);    %H(i,1) =  % remember that the initial conditions come from steady
                     %state and from fluid mechanics you know how to calculate the
         %piezometric head 
     end
@@ -166,7 +208,7 @@ elseif mode == "airChamber"
     if i==1
         H(i,1) = H0;
     else
-   H(i,1) =  H0-(i-1)*dx*f/D*V_initial^2/(2*g);    %H(i,1) =  % remember that the initial conditions come from steady
+   H(i,1) =  H0-(i-1)*dx*f(i)/D*V_initial^2/(2*g);    %H(i,1) =  % remember that the initial conditions come from steady
                     %state and from fluid mechanics you know how to calculate the
         %piezometric head 
     end
@@ -184,31 +226,31 @@ for j = 1:tsteps-1
     
     % left boundary condition
     H(1,j+1) = H0; 
-    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f*dt/(2*D)*V(2,j)*abs(V(2,j));
+    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f(1)*dt/(2*D)*V(2,j)*abs(V(2,j));
     % calculation of pressure wave
     % loop over lenght of pipe
     if friction == "normalFriction"
         for i = 2:n
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
-            V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
+            V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
         end
     elseif friction == "transientFriction"
         for i = 2:n
             if j == 1
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f(i)*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
                         -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
                         -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
             
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
                         -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             
             else
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
                         -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
                         -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
         
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
                         -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             end
@@ -225,26 +267,43 @@ for j = 1:tsteps-1
     % This function only allows two types of closure: 10 for sinusoidal and 20 for linear. 
     % More on writing matlab functions in: https://de.mathworks.com/help/matlab/ref/function.html
     % More on calling functions in matlab: https://de.mathworks.com/help/matlab/learn_matlab/calling-functions.html
-   help=(j-1)*dt/Tcl*pi();
-    if help <= pi()
-        V(n+1,j+1) = V_initial*0.5*(cos(help)+1);
-    else
-        V(n+1,j+1) = 0;
-    end 
+    
+%    help=(j-1)*dt/Tcl*pi();
+%     if help <= pi()
+%         V(n+1,j+1) = V_initial*0.5*(cos(help)+1);
+%     else
+%         V(n+1,j+1) = 0;
+%     end 
+%     H(n+1,j+1) = H(n,j)+a/g*(V(n,j)-V(n+1,j+1))-(a/g)*((f(n+1)*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
+ 
+    
+    %right b.c. walve closure: based on Torricelli’s Law
+    t=j*dt;
+    phi = (Cd*Av)/Ap; 
+    if (1-t/Tcl) >= 0 
+    T_closure = (1-t/Tcl)^0.5;
+    else 
+    T_closure = 0;
+    end
+    % is j correct?
+    %1-t/Tcl
+    if (1-t/Tcl) >= 0
+    Fric=((f(n)/(2*D))*V(n,j)*abs(V(n,j))*dt);
+    Coef_a=  (g/a)^2;
+    Coef_b = 2*(g/a)*Fric-2*V(n,j)*(g/a)-2*(g/a)^2*H(n,j)-(phi*T_closure)^2*2*g;
+    Coef_c = -2*Fric*V(n,j)+V(n,j)^2+Fric^2+2*(g/a)*H(n,j)*V(n,j)-2*Fric*(g/a)*H(n,j)+(g*H(n,j)/a)^2;
+   mat(j,1)=Coef_a;
+   mat(j,2)=Coef_b;
+   mat(j,3)=Coef_c;
+    H(n+1,j+1) = (-Coef_b-sqrt(Coef_b^2-4*Coef_a*Coef_c))/(2*Coef_a);
     
     
-%     t=j*dt;
-%     phi = (Cd*Av)/Ap; 
-%     T_closure = (1-t/Tcl)^0.5; % is j correct?
-%     %1-t/Tcl
-%     if (1-t/Tcl) >= 0 
-%     V(n+1,j+1) = phi*T_closure*sqrt(2*g*H(n,j+1)); %H0 ?H(n,j+1) this is
-%     
-%     else 
-%     V(n+1,j+1) = 0;
-%     end
-   
-    H(n+1,j+1) = H(n,j)+a/g*(V(n,j)-V(n+1,j+1))-(a/g)*((f*dt)/(2*D))*V(n,j)*abs(V(n,j));
+    V(n+1,j+1) = phi*T_closure*sqrt(2*g*H(n+1,j+1)); %H0 ?H(n,j+1) this is
+    
+    else 
+    V(n+1,j+1) = 0;
+    H(n+1,j+1) = H(n,j)+(a/g)*(V(n,j)-V(n+1,j+1))-(a/g)*((f(n)*dt)/(2*D))*V(n,j)*abs(V(n,j));
+    end
 end
 
  
@@ -254,7 +313,7 @@ for j = 1:tsteps-1
     
     % left boundary condition
     H(1,j+1) = H0; 
-    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f*dt/(2*D)*V(2,j)*abs(V(2,j));
+    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f(1)*dt/(2*D)*V(2,j)*abs(V(2,j));
     
     if friction == "normalFriction"
     % calculation of pressure wave % loop over lenght of pipe
@@ -268,8 +327,8 @@ for j = 1:tsteps-1
             while true
         %Hcheck(1,count) = Hcheck(2,count-1);
         Hcheck(1,count) = H(nsT,j+1);
-        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
-        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
+        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
+        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
         H(nsT,j+1) = H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
                 
         Hcheck(2,count) = H(nsT,j+1);
@@ -285,16 +344,16 @@ for j = 1:tsteps-1
               
         else
             
-        H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
-        V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
+        H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
+        V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
         
         end
     end
     for i = nsT+1:n
         
         %Note V is changed because it has n+2 values and H only n+1
-        H(i,j+1) = (H (i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)));
-        V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));
+        H(i,j+1) = (H (i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)));
+        V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));
         
     end
     elseif friction == "transientFriction"      
@@ -310,8 +369,8 @@ for j = 1:tsteps-1
             while true
         %Hcheck(1,count) = Hcheck(2,count-1);
         Hcheck(1,count) = H(nsT,j+1);
-        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
-        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
+        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
+        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
         H(nsT,j+1) = H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
                 
         Hcheck(2,count) = H(nsT,j+1);
@@ -328,20 +387,20 @@ for j = 1:tsteps-1
         else
             
                 if j == 1
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f(i)*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
                         -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
                         -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
             
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
                         -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             
                 else
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
                         -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
                         -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
         
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
                         -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
                 end  
@@ -350,20 +409,20 @@ for j = 1:tsteps-1
     for i = nsT+1:n
         %Note V is changed because it has n+2 values and H only n+1
                         if j == 1
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-((f(i)*dt*a)/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j)-V(i+2,j)+V(i+2,j)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
             
-            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
+            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
                         -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j)+V(i+2,j)-V(i+2,j)))+((K_ux*a/dx))*...
                         (sign(V(i,j))*abs(V(i+1,j)-V(i,j))+sign(V(i+2,j))*abs(V(i+1,j)-V(i+2,j)))))*(1/(1+theta*K_ut));
             
                         else
-        H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j-1)-V(i+2,j)+V(i+2,j-1)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
         
-        V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
+            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
                         -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j-1)+V(i+2,j)-V(i+2,j-1)))+((K_ux*a/dx))*...
                         (sign(V(i,j))*abs(V(i+1,j)-V(i,j))+sign(V(i+2,j))*abs(V(i+1,j)-V(i+2,j)))))*(1/(1+theta*K_ut));
                         end
@@ -381,14 +440,40 @@ for j = 1:tsteps-1
     % 20 for linear. 
     % More on writing matlab functions in: https://de.mathworks.com/help/matlab/ref/function.html
     % More on calling functions in matlab: https://de.mathworks.com/help/matlab/learn_matlab/calling-functions.html
-   help=(j-1)*dt/Tcl*pi();
-    if help <= pi()
-        V(n+2,j+1) = V_initial*0.5*(cos(help)+1);
-    else
-        V(n+2,j+1) = 0;
-    end 
-     H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
- 
+%    help=(j-1)*dt/Tcl*pi();
+%     if help <= pi()
+%         V(n+2,j+1) = V_initial*0.5*(cos(help)+1);
+%     else
+%         V(n+2,j+1) = 0;
+%     end 
+
+    %right b.c. walve closure: based on Torricelli’s Law
+    t=j*dt;
+    phi = (Cd*Av)/Ap; 
+    if (1-t/Tcl) >= 0 
+    T_closure = (1-t/Tcl)^0.5;
+    else 
+    T_closure = 0;
+    end
+    % is j correct?
+    %1-t/Tcl
+    if (1-t/Tcl) >= 0
+    Fric=((f(n+1)/(2*D))*V(n,j)*abs(V(n,j))*dt);
+    Coef_a=  (g/a)^2;
+    Coef_b = 2*(g/a)*Fric-2*V(n+1,j)*(g/a)-2*(g/a)^2*H(n,j)-(phi*T_closure)^2*2*g;
+    Coef_c = -2*Fric*V(n+1,j)+V(n+1,j)^2+Fric^2+2*(g/a)*H(n,j)*V(n+1,j)-2*Fric*(g/a)*H(n,j)+(g*H(n,j)/a)^2;
+   mat(j,1)=Coef_a;
+   mat(j,2)=Coef_b;
+   mat(j,3)=Coef_c;
+    H(n+1,j+1) = (-Coef_b-sqrt(Coef_b^2-4*Coef_a*Coef_c))/(2*Coef_a);
+    1-t/Tcl
+    
+    V(n+2,j+1) = phi*T_closure*sqrt(2*g*H(n+1,j+1)); %H0 ?H(n,j+1) this is
+    
+    else 
+    V(n+2,j+1) = 0;
+    H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f(n+1)*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
+    end
 end
   
 elseif mode == "airChamber"
@@ -398,7 +483,7 @@ for j = 1:tsteps-1
     
     % left boundary condition
     H(1,j+1) = H0; 
-    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f*dt/(2*D)*V(2,j)*abs(V(2,j));
+    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f(1)*dt/(2*D)*V(2,j)*abs(V(2,j));
    
   if friction == "normalFriction"
     % calculation of pressure wave % loop over lenght of pipe
@@ -411,8 +496,8 @@ for j = 1:tsteps-1
             while true
         %Hcheck(1,count) = Hcheck(2,count-1);
         Hcheck(1,count) = H(nsT,j+1);
-        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
-        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
+        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
+        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
         H(nsT,j+1) = H(nsT,j)+((A_air*dt*m_pol)/2)*((H(i,j)+H_atm)^(1+1/m_pol)/(H_air^(1/m_pol)*Vol_air))*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
                 
         Hcheck(2,count) = H(nsT,j+1);
@@ -427,16 +512,85 @@ for j = 1:tsteps-1
             end   
               
         else         
-        H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
-        V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));       
+        H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
+        V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));       
         end
     end
     for i = nsT+1:n
         %Note V is changed because it has n+2 values and H only n+1
-        H(i,j+1) = (H (i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)));
-        V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));      
+        H(i,j+1) = (H (i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)));
+        V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));      
     end
-    elseif friction == "transientFriction"                      
+    elseif friction == "transientFriction"           
+              % calculation of pressure wave % loop over lenght of pipe
+    for i = 2:nsT
+        
+        if i == nsT
+        H(nsT,j+1) = H(nsT,j);%H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
+        
+        Hcheck = zeros (2,maxit);
+        
+            while true
+        %Hcheck(1,count) = Hcheck(2,count-1);
+        Hcheck(1,count) = H(nsT,j+1);
+        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
+        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
+        H(nsT,j+1) = H(nsT,j)+((A_air*dt*m_pol)/2)*((H(i,j)+H_atm)^(1+1/m_pol)/(H_air^(1/m_pol)*Vol_air))*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
+                    
+        Hcheck(2,count) = H(nsT,j+1);
+        
+        diff = abs(Hcheck(1,count)-Hcheck(2,count));
+        
+          if (diff<=tol) || (count== maxit) 
+            break;
+          else
+        count=count+1;
+          end
+            end   
+              
+        else
+            
+                if j == 1
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f(i)*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a/dx))*...
+                        (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
+            
+                else
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+        
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a/dx))*...
+                        (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
+                end  
+        end
+    end
+    for i = nsT+1:n
+        %Note V is changed because it has n+2 values and H only n+1
+                        if j == 1
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-((f(i)*dt*a)/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j)-V(i+2,j)+V(i+2,j)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
+            
+            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j)+V(i+2,j)-V(i+2,j)))+((K_ux*a/dx))*...
+                        (sign(V(i,j))*abs(V(i+1,j)-V(i,j))+sign(V(i+2,j))*abs(V(i+1,j)-V(i+2,j)))))*(1/(1+theta*K_ut));
+            
+                        else
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j-1)-V(i+2,j)+V(i+2,j-1)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
+        
+            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j-1)+V(i+2,j)-V(i+2,j-1)))+((K_ux*a/dx))*...
+                        (sign(V(i,j))*abs(V(i+1,j)-V(i,j))+sign(V(i+2,j))*abs(V(i+1,j)-V(i+2,j)))))*(1/(1+theta*K_ut));
+                        end
+    end
     else
        disp("choose friction");
        return
@@ -455,7 +609,7 @@ for j = 1:tsteps-1
     else
         V(n+2,j+1) = 0;
     end 
-     H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));   
+     H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f(n+1)*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));   
 end   
 
 else 
@@ -499,8 +653,8 @@ if mode == "normalVersion"
     
 % set x-axis data for plots over the lenght of the pipe
 xaxis = 0:dx:L;
-xaxisV=xaxis
-xaxisH = 
+xaxisV = xaxis;
+xaxisH = xaxis;
 % set x-axis data for plots over time
 t = 0 : dt : (tsteps-1)*dt ;
 
