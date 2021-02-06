@@ -129,16 +129,16 @@ for j=1:tmstps-1
                         -((alpha*dt)/(2*g))*(K_ux*alpha*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
             
             V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*alpha)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*alpha/dx))*...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             
             else
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(alpha/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*alpha/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
-                        -(alpha/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
-                        -((alpha*dt)/(2*g))*(K_ux*alpha*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
+                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
         
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*alpha)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*alpha/dx))*...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             end
         end
@@ -152,11 +152,7 @@ for j=1:tmstps-1
          
 end
 
-
 %% End of Student Input %%
-%Change of matrix for plot
-H=flip(H);
-V=flip(V);
 
 % calculate maximum and minimum envelopes
 
@@ -176,14 +172,13 @@ pipey=[20,20,120,120];
 
 figure(2)
 for i=1:50:tsteps
-   % plot(pipex,pipey)
-   
-    plot(x,H_max) 
+    plot(pipex,pipey)
     hold all
+    plot(x,H_max)
     plot(x,H_min)
     plot(x,H(:,i))
     label_1=['Head at ',num2str((i-1)*dt), ' s'];
-    legend('max head', 'min head',label_1, 'location', 'southeast')
+    legend('pipe profile','max head', 'min head',label_1, 'location', 'southeast')
     hold off
     %ylim([60 400])
     xlabel('pipe length [m]')
@@ -210,7 +205,7 @@ legend('pump curve points','pump curve','system curve')
   plot(t,H(1,:)), xlabel('t [s]'), ylabel('H [m]')
   hold on
   plot(t,H(n+1,:)), xlabel('t [s]'), ylabel('H [m]')
-  legend('at the reservoir','at the pump', 'Location', 'best')
+  legend('at the pump','at the reservoir', 'Location', 'best')
   
 subplot(2,2,2)
     hold off

@@ -14,7 +14,7 @@ mode = "normalVersion";
 %% Choose between turbine and pumping mode 
 % system = pump/turbine
 system = "pump"
-%system = "turbine"
+system = "turbine"
 
 
 %% Choose friction 
@@ -31,7 +31,7 @@ fprintf('Mode is set to: %s, The friction is set to: %s.\n',mode,friction);
 
 %% control volumes
 %   choose number larger than 5. 
-n  =  50 ;  %  > 5
+n  =  40 ;  %  > 5
 %% input data
 % Pipe data
 H0 =  120 ;   % reservoir water level [m]
@@ -154,7 +154,8 @@ fprintf('wave speed alpha = %g, choosen wave spped = %g\n',alpha,a);
 
 % either pump or turbine system
 if system == "pump"
-[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial,tsteps,Ap);                                
+[H,V] = function_PumpSimulation(visc,H0,rough,e,K,phi,E,friction,rho,K_ut,K_ux,theta,V_initial,tsteps,Ap);
+                                
 elseif system == "turbine"
     
 %initialization 
