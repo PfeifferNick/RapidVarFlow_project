@@ -31,10 +31,10 @@ fprintf('Mode is set to: %s, The friction is set to: %s.\n',mode,friction);
 
 %% control volumes
 %   choose number larger than 5. 
-% NORMAL mode 5 < n < x; good results: n = 20
-% SURGEtank mode < n <
+% NORMAL mode 5 < n < 47; good results: n = 20
+% SURGEtank mode < n < 
 % AIRchamber mode < n <
-n  =  20 ;  %  > 5
+n  =  46 ;  %  > 5
 %% input data
 % Pipe data
 H0 =  120 ;   % reservoir water level [m]
