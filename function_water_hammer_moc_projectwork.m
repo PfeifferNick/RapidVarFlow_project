@@ -7,8 +7,8 @@ global Ap a dt Tcl g f mode L D dx tend n
 
 %% Choose between normalVersion/surgeTank/airChamber
 %mode = "airChamber"; %% normalVersion/surgeTank/airChamber
-%mode = "surgeTank";
-mode = "normalVersion";
+mode = "surgeTank";
+%mode = "normalVersion";
 %mode = "airChamber";
 
 %% Choose between turbine and pumping mode 
@@ -54,10 +54,10 @@ visc=1.004*10^(-6); % kinematic viscosity [m2/s]
 if mode == "surgeTank"
     %%for surge tank in the middle 
     % Position of the surge tank
-    nsT = 19;%round(n/2)+1; % if n=5, nsT=4
+    nsT = 10;% round(n/2)+1; % if n=5, nsT=4
     AsT = 20;% AsT Area of surge tank 20 m^2
-    maxit = 1000; %maximum iteration steps
-    tol = 1e-5; %tolerance
+    maxit = 1000; % maximum iteration steps
+    tol = 1e-5; % tolerance
 end
 
 if mode == "airChamber"
@@ -84,15 +84,20 @@ Cd = 0.8 ;
 % simulation data
 dx = L/n ;      % lenght of control volumes
 dt = dx/a;      %length/wave velocity, CFl=dt*a/dx
-tend = 250; %10*mu;  % simulation duration
+tend = 10*mu;  % simulation duration
 tsteps = round(tend/dt) ; % simulated time steps
 
 V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity comes from Bernouli's energy conservation equation.
 
 %% Separation of the pipe into control volumes
-n1 = round(L_1/dx);
-n2 = round(L_2/dx);
+% n1 = round(L_1/dx);
+% n2 = round(L_2/dx);
+% n3 = n-n1-n2;
+
+n1 = 5;
+n2 = 5;
 n3 = n-n1-n2;
+
 sum_n = n1+n2+n3;
 
 if sum_n==n 
@@ -102,39 +107,105 @@ else
 end
 
 %% Pipe properties
-
 e=0.012; % pipe thickness [m]
-E=210*10^9; % Youngs modulus of the pipe [N/m2]
-%u??
-
-% calculation of pipe friction factor
 Re=V_initial*D/visc; % reynolds number 
 
+%% Pipe 1
+%CHOOSE ONE FOR EACH PIPE SEGMENT:
+
+% Steel:
 % rough=0.00015; % pipe roughness [m] (steel)
-rough=0.0003; % pipe roughness [m] (reinforced concrete)
-% rough=0.000115; % pipe roughness [m] (ductile iron)
+% E=2.077*10^11; % Youngs modulus of the pipe [N/m2] (steel)
+% u = 0.30; % Poisson ratio [-] (steel)
+
+% Ductile Iron:
+rough=0.00115; % pipe roughness [m] (ductile iron)
+E=  1.6e11; % Youngs modulus of the pipe [N/m2] (ductile iron)
+u = 0.33; % Poisson ratio [-] (ductile iron)
+
+% Reinforced Cocrete:
+% rough = 0.0003; % pipe roughness [m] (reinforced concrete)
+% E = 32.5*10^9; % Youngs modulus of the pipe [N/m2](reinforced concrete)
+% u = 0.3; % Poisson ratio [-] (reinforced concrete)
+
+% GRP:
 % rough=0.00003; % pipe roughness [m] (GRP)
+% E=  7e10; % Youngs modulus of the pipe [N/m2] (GRP)
+% u = 0.22; % Poisson ratio [-] (GRP)
 
-% Pipe 1 
-rough1 = 0.00015; % pipe roughness [m] (steel)
-f1=0.25/(log(rough1/(D*3.7)+5.74/Re^0.9))^2; % friction factor
-% Pipe 2 
-rough2 = 0.00015; % pipe roughness [m] (reinforced concrete)
-f2=0.25/(log(rough2/(D*3.7)+5.74/Re^0.9))^2; % friction factor
-% Pipe 3 
-rough3 = 0.00015; % pipe roughness [m] (reinforced concrete)
-f3=0.25/(log(rough3/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+%Calculations:
+f1=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+phi = (1/(1+e/D))*(1-u^2+2*(e/D)*(1+u)*(1+e/D));
+alpha1 = sqrt((K/rho)/(1+phi*(D*K)/(E*e)));
 
+%% Pipe 2 
+
+% Steel:
+% rough=0.00015; % pipe roughness [m] (steel)
+% E=2.077*10^11; % Youngs modulus of the pipe [N/m2] (steel)
+% u = 0.30; % Poisson ratio [-] (steel)
+
+% Ductile Iron:
+rough=0.00115; % pipe roughness [m] (ductile iron)
+E=  1.6e11; % Youngs modulus of the pipe [N/m2] (ductile iron)
+u = 0.33; % Poisson ratio [-] (ductile iron)
+
+% Reinforced Cocrete:
+% rough = 0.0003; % pipe roughness [m] (reinforced concrete)
+% E = 32.5*10^9; % Youngs modulus of the pipe [N/m2](reinforced concrete)
+% u = 0.3; % Poisson ratio [-] (reinforced concrete)
+
+% GRP:
+% rough=0.00003; % pipe roughness [m] (GRP)
+% E=  7e10; % Youngs modulus of the pipe [N/m2] (GRP)
+% u = 0.22; % Poisson ratio [-] (GRP)
+
+%Calculations:
+f2=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+phi = (1/(1+e/D))*(1-u^2+2*(e/D)*(1+u)*(1+e/D));
+alpha2 = sqrt((K/rho)/(1+phi*(D*K)/(E*e)));
+
+%% Pipe 3 
+
+% Steel:
+% rough=0.00015; % pipe roughness [m] (steel)
+% E=2.077*10^11; % Youngs modulus of the pipe [N/m2] (steel)
+% u = 0.30; % Poisson ratio [-] (steel)
+
+% Ductile Iron:
+% rough=0.00115; % pipe roughness [m] (ductile iron)
+% E=  1.6e11; % Youngs modulus of the pipe [N/m2] (ductile iron)
+% u = 0.33; % Poisson ratio [-] (ductile iron)
+
+% Reinforced Cocrete:
+% rough = 0.0003; % pipe roughness [m] (reinforced concrete)
+% E = 32.5*10^9; % Youngs modulus of the pipe [N/m2](reinforced concrete)
+% u = 0.3; % Poisson ratio [-] (reinforced concrete)
+
+% GRP:
+rough=0.00003; % pipe roughness [m] (GRP)
+E=  7e10; % Youngs modulus of the pipe [N/m2] (GRP)
+u = 0.22; % Poisson ratio [-] (GRP)
+
+%Calculations:
+f3=0.25/(log(rough/(D*3.7)+5.74/Re^0.9))^2; % friction factor
+phi = (1/(1+e/D))*(1-u^2+2*(e/D)*(1+u)*(1+e/D));
+alpha3 = sqrt((K/rho)/(1+phi*(D*K)/(E*e)));
+
+%% Implemention of segments
 f = zeros(n+1,1);
-
+a = zeros(n+1,1);
 
 for i = 1:n+1
     if i <= n1 
     f(i,1) = f1;
+    a(i,1) = alpha1;
     elseif i <= n1+n2 
     f(i,1) = f2;
+    a(i,1) = alpha2;
     else  
     f(i,1) = f3;
+    a(i,1) = alpha3;
     end
 end
 
@@ -225,32 +296,32 @@ for j = 1:tsteps-1
     
     % left boundary condition
     H(1,j+1) = H0; 
-    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f(1)*dt/(2*D)*V(2,j)*abs(V(2,j));
+    V(1,j+1) = V(2,j)-g/a(1)*(H(2,j)-H0)-f(1)*dt/(2*D)*V(2,j)*abs(V(2,j));
     % calculation of pressure wave
     % loop over lenght of pipe
     if friction == "normalFriction"
         for i = 2:n
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
-            V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a(i)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
+            V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
         end
     elseif friction == "transientFriction"
         for i = 2:n
             if j == 1
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f(i)*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+1,j)-V(i-1,j))-((f(i)*dt*a(i))/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a(i)/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
+                        -((a(i)*dt)/(2*g))*(K_ux*a(i)*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
             
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a/dx))*...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a(i)/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             
             else
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a(i)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a(i)/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
+                        -((a(i)*dt)/(2*g))*(K_ux*a(i)*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
         
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a/dx))*...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a(i)/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             end
         end
@@ -287,9 +358,9 @@ for j = 1:tsteps-1
     %1-t/Tcl
     if (1-t/Tcl) >= 0
     Fric=((f(n)/(2*D))*V(n,j)*abs(V(n,j))*dt);
-    Coef_a=  (g/a)^2;
-    Coef_b = 2*(g/a)*Fric-2*V(n,j)*(g/a)-2*(g/a)^2*H(n,j)-(phi*T_closure)^2*2*g;
-    Coef_c = -2*Fric*V(n,j)+V(n,j)^2+Fric^2+2*(g/a)*H(n,j)*V(n,j)-2*Fric*(g/a)*H(n,j)+(g*H(n,j)/a)^2;
+    Coef_a=  (g/a(n))^2;
+    Coef_b = 2*(g/a(n))*Fric-2*V(n,j)*(g/a(n))-2*(g/a(n))^2*H(n,j)-(phi*T_closure)^2*2*g;
+    Coef_c = -2*Fric*V(n,j)+V(n,j)^2+Fric^2+2*(g/a(n))*H(n,j)*V(n,j)-2*Fric*(g/a(n))*H(n,j)+(g*H(n,j)/a(n))^2;
    mat(j,1)=Coef_a;
    mat(j,2)=Coef_b;
    mat(j,3)=Coef_c;
@@ -300,7 +371,7 @@ for j = 1:tsteps-1
     
     else 
     V(n+1,j+1) = 0;
-    H(n+1,j+1) = H(n,j)+(a/g)*(V(n,j)-V(n+1,j+1))-(a/g)*((f(n)*dt)/(2*D))*V(n,j)*abs(V(n,j));
+    H(n+1,j+1) = H(n,j)+(a(n)/g)*(V(n,j)-V(n+1,j+1))-(a(n)/g)*((f(n)*dt)/(2*D))*V(n,j)*abs(V(n,j));
     end
 end
 
@@ -390,7 +461,7 @@ for j = 1:tsteps-1
     
     % left boundary condition
     H(1,j+1) = H0; 
-    V(1,j+1) = V(2,j)-g/a*(H(2,j)-H0)-f(1)*dt/(2*D)*V(2,j)*abs(V(2,j));
+    V(1,j+1) = V(2,j)-g/a(1)*(H(2,j)-H0)-f(1)*dt/(2*D)*V(2,j)*abs(V(2,j));
     
     if friction == "normalFriction"
     % calculation of pressure wave % loop over lenght of pipe
@@ -404,8 +475,8 @@ for j = 1:tsteps-1
         while true
         %Hcheck(1,count) = Hcheck(2,count-1);
         Hcheck(1,count) = H(nsT,j+1);
-        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
-        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
+        V(nsT,j+1) = V(nsT-1,j)+g/a(i)*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
+        V(nsT+1,j+1)= V(nsT+2,j)-g/a(i)*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
         H(nsT,j+1) = H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
                 
         Hcheck(2,count) = H(nsT,j+1);
@@ -421,16 +492,16 @@ for j = 1:tsteps-1
               
         else
             
-        H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
-        V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
+        H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a(i)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)));
+        V(i,j+1) = (V(i-1,j)+V(i+1,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)));
         
         end
     end
     for i = nsT+1:n
         
         %Note V is changed because it has n+2 values and H only n+1
-        H(i,j+1) = (H (i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)));
-        V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));
+        H(i,j+1) = (H (i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a(i)/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)));
+        V(i+1,j+1) = (V(i,j)+V(i+2,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)));
         
     end
     elseif friction == "transientFriction"      
@@ -446,8 +517,8 @@ for j = 1:tsteps-1
             while true
         %Hcheck(1,count) = Hcheck(2,count-1);
         Hcheck(1,count) = H(nsT,j+1);
-        V(nsT,j+1) = V(nsT-1,j)+g/a*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
-        V(nsT+1,j+1)= V(nsT+2,j)-g/a*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
+        V(nsT,j+1) = V(nsT-1,j)+g/a(i)*(H(nsT-1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT-1,j)*abs(V(nsT-1,j))*dt);
+        V(nsT+1,j+1)= V(nsT+2,j)-g/a(i)*(H(nsT+1,j)-H(nsT,j+1))-(f(i)/(2*D))*(V(nsT+2,j)*abs(V(nsT+2,j))*dt);
         H(nsT,j+1) = H(nsT,j)+(Ap*dt)/(2*AsT)*((V(nsT,j+1)-V(nsT+1,j+1))+(V(nsT,j)-V(nsT+1,j))); % not sure about which velocity to take
                 
         Hcheck(2,count) = H(nsT,j+1);
@@ -464,21 +535,21 @@ for j = 1:tsteps-1
         else
             
                 if j == 1
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-((f(i)*dt*a)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+1,j)-V(i-1,j))-((f(i)*dt*a(i))/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a(i)/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j)-V(i+1,j)+V(i+1,j)))...
+                        -((a(i)*dt)/(2*g))*(K_ux*a(i)*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
             
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a/dx))*...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j)+V(i+1,j)-V(i+1,j)))+((K_ux*a(i)/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
             
                 else
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+1,j)-V(i-1,j))-(f(i)*dt*a(i)/(4*g*D))*(V(i-1,j)*abs(V(i-1,j))-V(i+1,j)*abs(V(i+1,j)))...
+                        -(a(i)/(2*g))*(K_ut*(1-theta)*(V(i-1,j)-V(i-1,j-1)-V(i+1,j)+V(i+1,j-1)))...
+                        -((a(i)*dt)/(2*g))*(K_ux*a(i)*(sign(V(i-1,j))*abs((V(i,j)-V(i-1,j))/dx)-sign(V(i+1,j))*abs((V(i,j)-V(i+1,j))/dx)));
         
-            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a/dx))*...
+            V(i,j+1) = ((V(i-1,j)+V(i+1,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i-1,j)*abs(V(i-1,j))+V(i+1,j)*abs(V(i+1,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i,j)+(1-theta)*(V(i-1,j)-V(i-1,j-1)+V(i+1,j)-V(i+1,j-1)))+((K_ux*a(i)/dx))*...
                         (sign(V(i-1,j))*abs(V(i,j)-V(i-1,j))+sign(V(i+1,j))*abs(V(i,j)-V(i+1,j)))))*(1/(1+theta*K_ut));
                 end  
         end
@@ -486,21 +557,21 @@ for j = 1:tsteps-1
     for i = nsT+1:n
         %Note V is changed because it has n+2 values and H only n+1
                         if j == 1
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-((f(i)*dt*a)/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j)-V(i+2,j)+V(i+2,j)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+2,j)-V(i,j))-((f(i)*dt*a(i))/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
+                        -(a(i)/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j)-V(i+2,j)+V(i+2,j)))...
+                        -((a(i)*dt)/(2*g))*(K_ux*a(i)*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
             
-            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j)+V(i+2,j)-V(i+2,j)))+((K_ux*a/dx))*...
+            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j)+V(i+2,j)-V(i+2,j)))+((K_ux*a(i)/dx))*...
                         (sign(V(i,j))*abs(V(i+1,j)-V(i,j))+sign(V(i+2,j))*abs(V(i+1,j)-V(i+2,j)))))*(1/(1+theta*K_ut));
             
                         else
-            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
-                        -(a/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j-1)-V(i+2,j)+V(i+2,j-1)))...
-                        -((a*dt)/(2*g))*(K_ux*a*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
+            H(i,j+1) = (H(i-1,j)+H(i+1,j))/2-(a(i)/(2*g))*(V(i+2,j)-V(i,j))-(f(i)*dt*a(i)/(4*g*D))*(V(i,j)*abs(V(i,j))-V(i+2,j)*abs(V(i+2,j)))...
+                        -(a(i)/(2*g))*(K_ut*(1-theta)*(V(i,j)-V(i,j-1)-V(i+2,j)+V(i+2,j-1)))...
+                        -((a(i)*dt)/(2*g))*(K_ux*a(i)*(sign(V(i,j))*abs((V(i+1,j)-V(i,j))/dx)-sign(V(i+2,j))*abs((V(i+1,j)-V(i+2,j))/dx)));
         
-            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a)*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
-                        -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j-1)+V(i+2,j)-V(i+2,j-1)))+((K_ux*a/dx))*...
+            V(i+1,j+1) = ((V(i,j)+V(i+2,j))/2-g/(2*a(i))*(H(i+1,j)-H(i-1,j))-(f(i)*dt/(4*D))*(V(i,j)*abs(V(i,j))+V(i+2,j)*abs(V(i+2,j)))...
+                        -dt/2*((K_ut/dt)*(-2*theta*V(i+1,j)+(1-theta)*(V(i,j)-V(i,j-1)+V(i+2,j)-V(i+2,j-1)))+((K_ux*a(i)/dx))*...
                         (sign(V(i,j))*abs(V(i+1,j)-V(i,j))+sign(V(i+2,j))*abs(V(i+1,j)-V(i+2,j)))))*(1/(1+theta*K_ut));
                         end
     end
@@ -536,20 +607,20 @@ for j = 1:tsteps-1
     %1-t/Tcl
     if (1-t/Tcl) >= 0
     Fric=((f(n+1)/(2*D))*V(n,j)*abs(V(n,j))*dt);
-    Coef_a=  (g/a)^2;
-    Coef_b = 2*(g/a)*Fric-2*V(n+1,j)*(g/a)-2*(g/a)^2*H(n,j)-(phi*T_closure)^2*2*g;
-    Coef_c = -2*Fric*V(n+1,j)+V(n+1,j)^2+Fric^2+2*(g/a)*H(n,j)*V(n+1,j)-2*Fric*(g/a)*H(n,j)+(g*H(n,j)/a)^2;
+    Coef_a=  (g/a(n))^2;
+    Coef_b = 2*(g/a(n))*Fric-2*V(n+1,j)*(g/a(n))-2*(g/a(n))^2*H(n,j)-(phi*T_closure)^2*2*g;
+    Coef_c = -2*Fric*V(n+1,j)+V(n+1,j)^2+Fric^2+2*(g/a(n))*H(n,j)*V(n+1,j)-2*Fric*(g/a(n))*H(n,j)+(g*H(n,j)/a(n))^2;
    mat(j,1)=Coef_a;
    mat(j,2)=Coef_b;
    mat(j,3)=Coef_c;
     H(n+1,j+1) = (-Coef_b-sqrt(Coef_b^2-4*Coef_a*Coef_c))/(2*Coef_a);
-    %1-t/Tcl
+    1-t/Tcl
     
     V(n+2,j+1) = phi*T_closure*sqrt(2*g*H(n+1,j+1)); %H0 ?H(n,j+1) this is
     
     else 
     V(n+2,j+1) = 0;
-    H(n+1,j+1) = H(n,j)+a/g*(V(n+1,j)-V(n+2,j+1))-(a/g)*((f(n+1)*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
+    H(n+1,j+1) = H(n,j)+a(n)/g*(V(n+1,j)-V(n+2,j+1))-(a(n)/g)*((f(n+1)*dt)/(2*D))*V(n+1,j)*abs(V(n+1,j));
     end
 end
 
