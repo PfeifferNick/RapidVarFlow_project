@@ -7,13 +7,17 @@ global Ap a dt Tcl g f mode L D dx tend n
 
 %% Choose between normalVersion/surgeTank/airChamber
 %mode = "airChamber"; %% normalVersion/surgeTank/airChamber
+
 mode = "surgeTank";
 %mode = "normalVersion";
+
+
 %mode = "airChamber";
 
 %% Choose between turbine and pumping mode 
 % system = pump/turbine
-%system = "pump";
+
+%system = "pump"
 system = "turbine";
 
 %% Choose friction 
@@ -34,6 +38,7 @@ fprintf('Mode is set to: %s, The friction is set to: %s.\n',mode,friction);
 % SURGEtank mode n =20;
 % AIRchamber mode n = 20;
 n  =  20;  %  > 5
+
 %% input data
 % Pipe data
 H0 =  120;   % reservoir water level [m]
@@ -74,6 +79,7 @@ end
 
 % Valve data
 %Tcl= 1e9 ;        %time of closure of the valve
+
 Tcl= 3 ;        %time of closure of the valve
 Dv  = 0.4 ;   % Valve diameter [m]
 Av = pi*Dv^2/4 ;       % Valve opening area [m?]
@@ -84,7 +90,9 @@ Cd = 0.8 ;
 % simulation data
 dx = L/n ;      % lenght of control volumes
 dt = dx/a;      %length/wave velocity, CFl=dt*a/dx
+
 tend = 10*mu;  % simulation duration
+
 tsteps = round(tend/dt) ; % simulated time steps
 
 V_initial = sqrt(2*g*H0/(f*L/D+zeta*(Ap/Av)^2+1)); % remember that this velocity comes from Bernouli's energy conservation equation.
@@ -1000,12 +1008,15 @@ end
   figure();     % More information on ploting in: https://de.mathworks.com/help/matlab/ref/plot.html
   % suptitle('Valve closure applying MOC') The command suptitle is not supporte on the basic package
 figure(1)
+
 %subplot(2,2,1)
+
   plot(t,H(1,:)), xlabel('Time t [s]'), ylabel('Pressure Head H [m]')
   hold on
   plot(t,H(n+1,:)), xlabel('Time t [s]'), ylabel('Pressure Head H [m]')
   legend('at the inlet', 'at the valve', 'Location', 'best')
   grid on;
+  
   % save plot as .eps
   %print -depsc normal_mode_H_t
 
@@ -1017,6 +1028,7 @@ figure(2)
     plot(t,V(n+1,:)), xlabel('Time t [s]'), ylabel('Velocity V [m/s]')
     legend('at the inlet', 'at the valve', 'Location', 'best')
     grid on;
+
     % save plot as .eps
     %print -depsc normal_mode_V_t
     
@@ -1026,11 +1038,13 @@ figure(2)
         %subplot(2,2,3)
         figure(3)
         grid on;
+
             plot(xaxis,H(:,i )), xlabel ('Pipe Length [m]'),ylabel('Pressure Head H [m]')
             axis([0,inf,(min(H_min_env)*1.1),(max(H_max_env)*1.1)]);
         %subplot(2,2,4)
         figure(4)
         grid on;
+
             plot(xaxis,V(:,i )), xlabel ('Pipe Length [m]'),ylabel('Velocity V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
         pause(.0002) 
@@ -1049,6 +1063,7 @@ figure(2)
         %subplot(2,2,4)
         figure(4)
         grid on;
+
             plot(xaxis,V(:,1),'DisplayName','steady state'), xlabel ('Pipe Length [m]'),ylabel('Velocity V [m/s]')
             axis([0,inf,(min(V_min_env)*1.1),(max(V_max_env)*1.1)]);
             hold on
@@ -1354,12 +1369,13 @@ end
             plot(xaxisV,V_min_env,'DisplayName','min envelope'), xlabel ('Pipe Length [m]'),ylabel('Velocity V [m/s]')
             grid on;
             legend('Location','southoutside','orientation','horizontal')            
-    end
-    
+
+    end   
 %% Save Figures as .eps
   % save plot as .eps
   % Change FILENAME! Depends on mode.
-    %Normal Mode:
+
+  %Normal Mode:
 %   print ('-f1','normal_mode_H_t','-depsc');
 %   print ('-f2','normal_mode_V_t','-depsc');
 %   print ('-f3','normal_mode_H_L','-depsc');
@@ -1379,7 +1395,7 @@ end
 %   print ('-f3','airchamber_mode_H_L','-depsc');
 %   print ('-f4','airchamber_mode_V_L','-depsc');
 %   print ('-f5','airchamber_mode_cav','-depsc');
-    
+ 
 else 
    disp("choose system");
        return 

@@ -1,0 +1,14 @@
+system = 
+
+    "turbine"
+
+n=20;
+tend=250;
+
+Mode is set to: normalVersion, The friction is set to: transientFriction.
+separation of control volumes worked
+wave speed alpha = 965.086, choosen wave spped = 1000
+maximum pressure height at valve: 325.24 m
+minimum pressure height at valve: -72.00 m
+excess pressure height at valve: 205.24 m
+excess pressure height at valve from equations in 4.2.1: 91.31 m
